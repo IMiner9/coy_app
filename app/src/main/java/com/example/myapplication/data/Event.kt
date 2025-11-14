@@ -14,8 +14,12 @@ data class Event(
     val time: String = "", // 시간 문자열 (HH:mm)
     val isAnniversary: Boolean = false, // 기념일 여부
     val notifyEnabled: Boolean = false, // 알림 활성화 여부
-    val color: String = "" // 이벤트 테마 색상 (HEX)
+    val color: String = "", // 이벤트 테마 색상 (HEX)
+    val category: Int = EventCategory.ANNIVERSARY.id,
+    val icon: String = DEFAULT_EVENT_ICON_ID
 )
+
+private const val DEFAULT_EVENT_ICON_ID = "cake"
 
 
 
