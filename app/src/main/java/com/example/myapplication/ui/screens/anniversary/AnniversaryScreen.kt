@@ -1,6 +1,13 @@
 package com.example.myapplication.ui.screens.anniversary
 
-import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import java.time.Instant
+import java.time.ZoneId
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -15,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +30,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -38,6 +48,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -51,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -64,9 +77,13 @@ import com.example.myapplication.data.Event
 import com.example.myapplication.data.EventCategory
 import com.example.myapplication.data.Profile
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
+import java.time.LocalDateTime
+import java.time.DayOfWeek
+import java.time.YearMonth
 import java.util.Locale
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -212,13 +229,17 @@ fun AnniversaryScreen() {
         AddAnniversaryDialog(
             event = null,
             onDismiss = { showAddDialog = false },
-            onSave = { title, date, memo, category, icon, color ->
+            onSave = { title, startDate, endDate, startTime, endTime, isAllDay, memo, category, icon, color ->
                 scope.launch {
                     eventDao.insertEvent(
                         Event(
                             title = title,
                             description = memo,
-                            date = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            date = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            endDate = if (endDate != null) endDate.format(DateTimeFormatter.ISO_LOCAL_DATE) else "",
+                            time = if (!isAllDay && startTime != null && endTime != null) {
+                                "${startTime.hour.toString().padStart(2, '0')}:${startTime.minute.toString().padStart(2, '0')}-${endTime.hour.toString().padStart(2, '0')}:${endTime.minute.toString().padStart(2, '0')}"
+                            } else "",
                             isAnniversary = true,
                             category = category.id,
                             icon = icon.id,
@@ -235,13 +256,17 @@ fun AnniversaryScreen() {
         AddAnniversaryDialog(
             event = event,
             onDismiss = { editingEvent = null },
-            onSave = { title, date, memo, category, icon, color ->
+            onSave = { title, startDate, endDate, startTime, endTime, isAllDay, memo, category, icon, color ->
                 scope.launch {
                     eventDao.updateEvent(
                         event.copy(
                             title = title,
                             description = memo,
-                            date = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            date = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            endDate = if (endDate != null) endDate.format(DateTimeFormatter.ISO_LOCAL_DATE) else "",
+                            time = if (!isAllDay && startTime != null && endTime != null) {
+                                "${startTime.hour.toString().padStart(2, '0')}:${startTime.minute.toString().padStart(2, '0')}-${endTime.hour.toString().padStart(2, '0')}:${endTime.minute.toString().padStart(2, '0')}"
+                            } else "",
                             category = category.id,
                             icon = icon.id,
                             color = color
@@ -430,20 +455,57 @@ private fun AnniversaryCard(
 private fun AddAnniversaryDialog(
     event: Event?,
     onDismiss: () -> Unit,
-    onSave: (String, LocalDate, String, EventCategory, AnniversaryIcon, String) -> Unit
+    onSave: (String, LocalDate, LocalDate?, LocalTime?, LocalTime?, Boolean, String, EventCategory, AnniversaryIcon, String) -> Unit
 ) {
     val context = LocalContext.current
     val dateFormatter = remember {
-        DateTimeFormatter.ofPattern("yyyy년 M월 d일 (E)", Locale.KOREAN)
+        DateTimeFormatter.ofPattern("M월 d일 EEEE", Locale.KOREAN)
+    }
+    val timeFormatter = remember {
+        DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN)
     }
     val isEditMode = event != null
     
+    // 시간 파싱 헬퍼 함수
+    fun parseTime(timeStr: String?): Pair<LocalTime?, LocalTime?>? {
+        if (timeStr.isNullOrBlank()) return null
+        val parts = timeStr.split("-")
+        if (parts.size != 2) return null
+        val startParts = parts[0].split(":")
+        val endParts = parts[1].split(":")
+        if (startParts.size != 2 || endParts.size != 2) return null
+        return try {
+            Pair(
+                LocalTime.of(startParts[0].toInt(), startParts[1].toInt()),
+                LocalTime.of(endParts[0].toInt(), endParts[1].toInt())
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
     var title by remember(event) { mutableStateOf(event?.title ?: "") }
     var memo by remember(event) { mutableStateOf(event?.description ?: "") }
-    var selectedDate by remember(event) {
+    var startDate by remember(event) {
         mutableStateOf<LocalDate?>(
-            event?.date?.toLocalDateOrNull() ?: null
+            event?.date?.toLocalDateOrNull() ?: LocalDate.now()
         )
+    }
+    var endDate by remember(event) {
+        mutableStateOf<LocalDate?>(
+            event?.endDate?.takeIf { it.isNotBlank() }?.toLocalDateOrNull()
+        )
+    }
+    var isAllDay by remember(event) {
+        mutableStateOf(event?.time.isNullOrBlank())
+    }
+    var startTime by remember(event) {
+        val parsed = parseTime(event?.time)
+        mutableStateOf<LocalTime?>(parsed?.first ?: LocalTime.of(15, 30))
+    }
+    var endTime by remember(event) {
+        val parsed = parseTime(event?.time)
+        mutableStateOf<LocalTime?>(parsed?.second ?: LocalTime.of(16, 30))
     }
     var selectedCategory by remember(event) {
         mutableStateOf(EventCategory.fromId(event?.category) ?: EventCategory.ANNIVERSARY)
@@ -462,7 +524,12 @@ private fun AddAnniversaryDialog(
         if (event != null) {
             title = event.title
             memo = event.description
-            selectedDate = event.date.toLocalDateOrNull()
+            startDate = event.date.toLocalDateOrNull() ?: LocalDate.now()
+            endDate = event.endDate.takeIf { it.isNotBlank() }?.toLocalDateOrNull()
+            val parsed = parseTime(event.time)
+            isAllDay = event.time.isBlank()
+            startTime = parsed?.first ?: LocalTime.of(15, 30)
+            endTime = parsed?.second ?: LocalTime.of(16, 30)
             selectedCategory = EventCategory.fromId(event.category) ?: EventCategory.ANNIVERSARY
             selectedIcon = AnniversaryIcon.fromId(event.icon) ?: AnniversaryIcon.CAKE
             selectedColor = event.color.takeIf { it.isNotBlank() } ?: availableColors.first().second
@@ -470,20 +537,43 @@ private fun AddAnniversaryDialog(
     }
     var showError by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
 
-    val openDatePicker = remember(selectedDate) {
-        {
-            val base = selectedDate ?: LocalDate.now()
-            DatePickerDialog(
-                context,
-                { _, year, month, dayOfMonth ->
-                    selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
-                },
-                base.year,
-                base.monthValue - 1,
-                base.dayOfMonth
-            ).show()
-        }
+    val openStartDatePicker = {
+        showStartDatePicker = true
+    }
+    
+    val openEndDatePicker = {
+        showEndDatePicker = true
+    }
+    
+    val openStartTimePicker = {
+        val time = startTime ?: LocalTime.of(15, 30)
+        TimePickerDialog(
+            context,
+            { _, hour, minute ->
+                startTime = LocalTime.of(hour, minute)
+            },
+            time.hour,
+            time.minute,
+            false
+        ).show()
+    }
+    
+    val openEndTimePicker = {
+        val time = endTime ?: LocalTime.of(16, 30)
+        TimePickerDialog(
+            context,
+            { _, hour, minute ->
+                endTime = LocalTime.of(hour, minute)
+            },
+            time.hour,
+            time.minute,
+            false
+        ).show()
     }
 
     AlertDialog(
@@ -503,7 +593,11 @@ private fun AddAnniversaryDialog(
                 )
 
                 Column {
-                    Text(text = "아이콘", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "아이콘",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF5D4037)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -515,21 +609,23 @@ private fun AddAnniversaryDialog(
                             val isSelected = selectedIcon == icon
                             Box(
                                 modifier = Modifier
-                                    .size(if (isSelected) 56.dp else 52.dp)
+                                    .size(56.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                        if (isSelected) Color(0xFFFF6B9D).copy(alpha = 0.2f) else Color(0xFFFFD700).copy(alpha = 0.1f)
+                                        if (isSelected) Color(0xFFFF6B9D).copy(alpha = 0.15f) else Color.Transparent
                                     )
-                                    .padding(if (isSelected) 3.dp else 2.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color.White)
+                                    .border(
+                                        width = if (isSelected) 0.dp else 1.dp,
+                                        color = Color(0xFFE0E0E0),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                                     .clickable { selectedIcon = icon },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
                                     painter = painterResource(id = icon.drawableRes),
                                     contentDescription = icon.label,
-                                    modifier = Modifier.size(if (isSelected) 40.dp else 36.dp),
+                                    modifier = Modifier.size(40.dp),
                                     contentScale = ContentScale.Fit
                                 )
                             }
@@ -537,26 +633,102 @@ private fun AddAnniversaryDialog(
                     }
                 }
 
+                // 시작 날짜/시간
                 Column {
-                    Text(text = "날짜", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "만나는날",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF5D4037)
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
-                    TextButton(onClick = openDatePicker) {
-                        Text(
-                            text = selectedDate?.format(dateFormatter) ?: "날짜 선택",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = openStartDatePicker,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = Color(0xFF5D4037)
+                            )
+                        ) {
+                            Text(
+                                text = startDate?.format(dateFormatter) ?: "만나는날",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        if (!isAllDay) {
+                            TextButton(
+                                onClick = openStartTimePicker,
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = Color(0xFFE91E63)
+                                )
+                            ) {
+                                Text(
+                                    text = startTime?.format(timeFormatter) ?: "시간 선택",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
-                    if (showError && selectedDate == null) {
-                        Text(
-                            text = "날짜를 선택해주세요.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                }
+                
+                // 종료 날짜/시간
+                Column {
+                    Text(
+                        text = "끝나는날",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF5D4037)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = openEndDatePicker,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = Color(0xFF5D4037)
+                            )
+                        ) {
+                            Text(
+                                text = endDate?.format(dateFormatter) ?: startDate?.format(dateFormatter) ?: "끝나는날",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        if (!isAllDay) {
+                            TextButton(
+                                onClick = openEndTimePicker,
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = Color(0xFFE91E63)
+                                )
+                            ) {
+                                Text(
+                                    text = endTime?.format(timeFormatter) ?: "시간 선택",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
+                }
+                
+                if (showError && startDate == null) {
+                    Text(
+                        text = "시작 날짜를 선택해주세요.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
                 Column {
-                    Text(text = "카테고리", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "카테고리",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF5D4037)
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     ExposedDropdownMenuBox(
                         expanded = categoryExpanded,
@@ -569,6 +741,10 @@ private fun AddAnniversaryDialog(
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded)
                             },
+                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF5D4037),
+                                unfocusedTextColor = Color(0xFF5D4037)
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
@@ -591,7 +767,11 @@ private fun AddAnniversaryDialog(
                 }
 
                 Column {
-                    Text(text = "색상", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "색상",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF5D4037)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -601,14 +781,20 @@ private fun AddAnniversaryDialog(
                             val isSelected = selectedColor == hex
                             Box(
                                 modifier = Modifier
-                                    .size(if (isSelected) 44.dp else 40.dp)
-                                    .clip(RoundedCornerShape(22.dp))
-                                    .background(
-                                        if (isSelected) Color.White else Color.Transparent
-                                    )
-                                    .padding(if (isSelected) 2.dp else 0.dp)
+                                    .size(40.dp)
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(color)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(
+                                                width = 2.dp,
+                                                color = Color(0xFFE91E63),
+                                                shape = RoundedCornerShape(20.dp)
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
                                     .clickable { selectedColor = hex }
                             )
                         }
@@ -624,25 +810,365 @@ private fun AddAnniversaryDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
-                    val picked = selectedDate
-                    if (title.isBlank() || picked == null) {
+                    if (title.isBlank() || startDate == null) {
                         showError = true
-                        return@TextButton
+                        return@Button
                     }
-                    onSave(title.trim(), picked, memo.trim(), selectedCategory, selectedIcon, selectedColor)
-                }
+                    onSave(
+                        title.trim(),
+                        startDate!!,
+                        endDate,
+                        if (!isAllDay) startTime else null,
+                        if (!isAllDay) endTime else null,
+                        isAllDay,
+                        memo.trim(),
+                        selectedCategory,
+                        selectedIcon,
+                        selectedColor
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE91E63)
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text("저장")
+                Text("저장", color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFF5D4037)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
                 Text("취소")
             }
         }
     )
+    
+    // 시작 날짜 선택 다이얼로그
+    if (showStartDatePicker) {
+        val baseDate = startDate ?: LocalDate.now()
+        var currentMonth by remember { mutableStateOf(YearMonth.from(baseDate)) }
+        var selectedDate by remember { mutableStateOf<LocalDate?>(baseDate) }
+        
+        Dialog(
+            onDismissRequest = { showStartDatePicker = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showStartDatePicker = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clickable(enabled = false) { }
+                ) {
+                    Column {
+                        // 상단 날짜 정보
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 20.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "만나는날",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = Color(0xFF8B4A6B)
+                                )
+                                selectedDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontSize = 16.sp
+                                        ),
+                                        color = Color(0xFFE91E63),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                } ?: startDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontSize = 16.sp
+                                        ),
+                                        color = Color(0xFFE91E63),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "끝나는날",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    ),
+                                    color = Color(0xFF5D4037)
+                                )
+                                endDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF5D4037)
+                                    )
+                                } ?: startDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF5D4037)
+                                    )
+                                } ?: Text(
+                                    text = "날짜 선택",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 14.sp
+                                    ),
+                                    color = Color(0xFF9E9E9E)
+                                )
+                            }
+                        }
+                        
+                        // 커스텀 캘린더
+                        CustomCalendar(
+                            currentMonth = currentMonth,
+                            selectedDate = selectedDate,
+                            startDate = startDate,
+                            endDate = endDate,
+                            onMonthChange = { currentMonth = it },
+                            onDateSelected = { date ->
+                                selectedDate = date
+                            }
+                        )
+                        
+                        // 하단 버튼
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showStartDatePicker = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFE0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("취소", color = Color(0xFFE91E63), style = MaterialTheme.typography.bodyLarge)
+                            }
+                            Button(
+                                onClick = {
+                                    selectedDate?.let { date ->
+                                        startDate = date
+                                        if (endDate == null || endDate!!.isBefore(startDate)) {
+                                            endDate = startDate
+                                        }
+                                        showStartDatePicker = false
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE91E63)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("확인", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 끝나는 날짜 선택 다이얼로그
+    if (showEndDatePicker) {
+        val baseDate = endDate ?: startDate ?: LocalDate.now()
+        var currentMonth by remember { mutableStateOf(YearMonth.from(baseDate)) }
+        var selectedDate by remember { mutableStateOf<LocalDate?>(baseDate) }
+        
+        Dialog(
+            onDismissRequest = { showEndDatePicker = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showEndDatePicker = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clickable(enabled = false) { }
+                ) {
+                    Column {
+                        // 상단 날짜 정보
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 20.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "만나는날",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = Color(0xFF8B4A6B)
+                                )
+                                startDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontSize = 16.sp
+                                        ),
+                                        color = Color(0xFFE91E63),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "끝나는날",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    ),
+                                    color = Color(0xFF5D4037)
+                                )
+                                selectedDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF5D4037)
+                                    )
+                                } ?: endDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF5D4037)
+                                    )
+                                } ?: startDate?.let {
+                                    Text(
+                                        text = it.format(dateFormatter),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF5D4037)
+                                    )
+                                } ?: Text(
+                                    text = "날짜 선택",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 14.sp
+                                    ),
+                                    color = Color(0xFF9E9E9E)
+                                )
+                            }
+                        }
+                        
+                        // 커스텀 캘린더
+                        CustomCalendar(
+                            currentMonth = currentMonth,
+                            selectedDate = selectedDate,
+                            startDate = startDate,
+                            endDate = endDate,
+                            onMonthChange = { currentMonth = it },
+                            onDateSelected = { date ->
+                                selectedDate = date
+                            }
+                        )
+                        
+                        // 하단 버튼
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showEndDatePicker = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFE0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("취소", color = Color(0xFFE91E63), style = MaterialTheme.typography.bodyLarge)
+                            }
+                            Button(
+                                onClick = {
+                                    selectedDate?.let { date ->
+                                        if (startDate == null || !date.isBefore(startDate)) {
+                                            endDate = date
+                                        }
+                                        showEndDatePicker = false
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE91E63)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("확인", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 private data class AnniversaryItem(
@@ -766,6 +1292,199 @@ private fun String.toLocalDateOrNull(): LocalDate? {
         LocalDate.parse(this)
     } catch (e: DateTimeParseException) {
         null
+    }
+}
+
+@Composable
+private fun CustomCalendar(
+    currentMonth: YearMonth,
+    selectedDate: LocalDate?,
+    startDate: LocalDate?,
+    endDate: LocalDate?,
+    onMonthChange: (YearMonth) -> Unit,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val monthYearFormatter = remember {
+        DateTimeFormatter.ofPattern("yyyy년 M월", Locale.KOREAN)
+    }
+    
+    val firstDayOfMonth = currentMonth.atDay(1)
+    val firstDayOfWeek = firstDayOfMonth.dayOfWeek
+    val daysInMonth = currentMonth.lengthOfMonth()
+    
+    // 요일 헤더
+    val weekDays = listOf("S", "M", "T", "W", "T", "F", "S")
+    
+    var showYearMonthPicker by remember { mutableStateOf(false) }
+    
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // 월/년도 헤더
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    onMonthChange(currentMonth.minusMonths(1))
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronLeft,
+                    contentDescription = "이전 달",
+                    tint = Color(0xFF5D4037)
+                )
+            }
+            
+            Text(
+                text = currentMonth.format(monthYearFormatter),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                ),
+                color = Color(0xFF5D4037),
+                modifier = Modifier.clickable {
+                    showYearMonthPicker = true
+                }
+            )
+            
+            IconButton(
+                onClick = {
+                    onMonthChange(currentMonth.plusMonths(1))
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "다음 달",
+                    tint = Color(0xFF5D4037)
+                )
+            }
+        }
+        
+        // 년도/월 선택 다이얼로그
+        if (showYearMonthPicker) {
+            YearMonthPickerDialog(
+                currentMonth = currentMonth,
+                onDismiss = { showYearMonthPicker = false },
+                onConfirm = { year, month ->
+                    onMonthChange(YearMonth.of(year, month))
+                    showYearMonthPicker = false
+                }
+            )
+        }
+        
+        // 요일 헤더
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            weekDays.forEach { day ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = day,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp
+                        ),
+                        color = Color(0xFF5D4037).copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+        
+        // 날짜 그리드
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val firstDayOffset = (firstDayOfWeek.value % 7)
+            var dayCounter = 1
+            
+            // 6주 표시
+            for (week in 0..5) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    for (dayOfWeek in 0..6) {
+                        val dayIndex = week * 7 + dayOfWeek
+                        
+                        if (week == 0 && dayOfWeek < firstDayOffset) {
+                            // 이전 달의 날짜 (빈 칸)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .padding(4.dp)
+                            )
+                        } else if (dayCounter <= daysInMonth) {
+                            val date = currentMonth.atDay(dayCounter)
+                            val isSelected = selectedDate == date
+                            
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .padding(4.dp)
+                                    .clickable {
+                                        onDateSelected(date)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(Color(0xFFE91E63)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = dayCounter.toString(),
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 14.sp
+                                            ),
+                                            color = Color.White
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = dayCounter.toString(),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF5D4037)
+                                    )
+                                }
+                            }
+                            dayCounter++
+                        } else {
+                            // 다음 달의 날짜 (빈 칸)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .padding(4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
