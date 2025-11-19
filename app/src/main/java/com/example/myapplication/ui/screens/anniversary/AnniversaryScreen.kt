@@ -146,6 +146,7 @@ fun AnniversaryScreen(
     var selectedFilter by remember { mutableStateOf(FilterTab.ALL) }
     var showAddDialog by remember { mutableStateOf(false) }
     var editingEvent by remember { mutableStateOf<Event?>(null) }
+    var deletingEventId by remember { mutableStateOf<Long?>(null) }
 
     val filteredItems = remember(combined, selectedFilter, today) {
         when (selectedFilter) {
@@ -255,9 +256,7 @@ fun AnniversaryScreen(
                                         }
                                     },
                                     onDelete = { eventId ->
-                                        scope.launch {
-                                            eventDao.deleteEvent(Event(id = eventId))
-                                        }
+                                        deletingEventId = eventId
                                     }
                                 )
                             }
@@ -266,7 +265,28 @@ fun AnniversaryScreen(
                 }
             }
             AnniversaryTab.CALENDAR -> {
-                com.example.myapplication.ui.screens.calendar.CalendarScreen()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    com.example.myapplication.ui.screens.calendar.CalendarScreen(
+                        anniversaryItems = combined.map { item ->
+                            com.example.myapplication.ui.screens.calendar.CalendarAnniversaryItem(
+                                key = item.key,
+                                title = item.title,
+                                description = item.description,
+                                date = item.date,
+                                isAuto = item.isAuto,
+                                autoTag = item.autoTag,
+                                category = item.category,
+                                icon = item.icon,
+                                color = item.color,
+                                sourceEventId = item.sourceEventId
+                            )
+                        }
+                    )
+                }
             }
         }
         }
@@ -322,6 +342,56 @@ fun AnniversaryScreen(
                 }
                 editingEvent = null
             }
+        )
+    }
+    
+    // 삭제 확인 다이얼로그
+    deletingEventId?.let { eventId ->
+        AlertDialog(
+            onDismissRequest = { deletingEventId = null },
+            title = {
+                Text(
+                    text = "기념일 삭제",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF8B4A6B)
+                )
+            },
+            text = {
+                Text(
+                    text = "정말 삭제하시겠습니까?",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF5D4037)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            eventDao.deleteEvent(Event(id = eventId))
+                        }
+                        deletingEventId = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("삭제", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { deletingEventId = null },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFF5D4037)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("취소")
+                }
+            },
+            containerColor = Color(0xFFF5F5DC)
         )
     }
 }
@@ -499,7 +569,7 @@ private fun AnniversaryCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddAnniversaryDialog(
+fun AddAnniversaryDialog(
     event: Event?,
     onDismiss: () -> Unit,
     onSave: (String, LocalDate, LocalDate?, LocalTime?, LocalTime?, Boolean, String, EventCategory, AnniversaryIcon, String) -> Unit
@@ -844,12 +914,9 @@ private fun AddAnniversaryDialog(
                                 .fillMaxWidth()
                                 .menuAnchor()
                         )
-                        DropdownMenu(
+                        ExposedDropdownMenu(
                             expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
+                            onDismissRequest = { categoryExpanded = false }
                         ) {
                             EventCategory.values().forEach { category ->
                                 DropdownMenuItem(
@@ -1405,13 +1472,15 @@ private fun String.toLocalDateOrNull(): LocalDate? {
 }
 
 @Composable
-private fun CustomCalendar(
+fun CustomCalendar(
     currentMonth: YearMonth,
     selectedDate: LocalDate?,
     startDate: LocalDate?,
     endDate: LocalDate?,
     onMonthChange: (YearMonth) -> Unit,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    minYear: Int = 2000,
+    maxYear: Int = 2100
 ) {
     val monthYearFormatter = remember {
         DateTimeFormatter.ofPattern("yyyy년 M월", Locale.KOREAN)
@@ -1484,7 +1553,9 @@ private fun CustomCalendar(
                 onConfirm = { year, month ->
                     onMonthChange(YearMonth.of(year, month))
                     showYearMonthPicker = false
-                }
+                },
+                minYear = minYear,
+                maxYear = maxYear
             )
         }
         

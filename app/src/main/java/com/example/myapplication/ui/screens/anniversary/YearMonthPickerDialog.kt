@@ -16,18 +16,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import java.time.Year
 import java.time.YearMonth
 
 @Composable
 fun YearMonthPickerDialog(
     currentMonth: YearMonth,
     onDismiss: () -> Unit,
-    onConfirm: (Int, Int) -> Unit
+    onConfirm: (Int, Int) -> Unit,
+    minYear: Int = 2000,
+    maxYear: Int = 2100
 ) {
     var selectedYear by remember { mutableStateOf(currentMonth.year) }
     var selectedMonth by remember { mutableStateOf(currentMonth.monthValue) }
     
-    val years = (2000..2100).toList()
+    val years = (minYear..maxYear).toList()
     val months = (1..12).toList()
     val monthNames = listOf("1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월")
     

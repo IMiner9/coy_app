@@ -1,25 +1,32 @@
 package com.example.myapplication.ui.screens.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.myapplication.data.Profile
-import java.time.Instant
+import com.example.myapplication.ui.screens.anniversary.CustomCalendar
+import com.example.myapplication.ui.screens.anniversary.YearMonthPickerDialog
 import java.time.LocalDate
-import java.time.ZoneId
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,19 +51,19 @@ fun ProfileEditDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
             shape = MaterialTheme.shapes.large,
             color = Color(0xFFF5F5DC),
             tonalElevation = 6.dp
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 // 헤더
                 Row(
@@ -83,7 +90,8 @@ fun ProfileEditDialog(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                        .padding(bottom = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // 이름
@@ -261,44 +269,48 @@ fun ProfileEditDialog(
                             unfocusedContainerColor = Color(0xFFF5F5DC)
                         )
                     )
-                }
 
-                Divider()
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // 하단 버튼
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                    // 저장/취소 버튼
+                    Divider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                            .padding(bottom = 32.dp)
+                            .navigationBarsPadding()
+                            .imePadding(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("취소")
-                    }
-                    Button(
-                        onClick = {
-                            val updatedProfile = Profile(
-                                id = profile?.id ?: 0,
-                                name = name,
-                                nickname = nickname,
-                                relationshipStartDate = relationshipStartDate,
-                                birthday = birthday,
-                                phoneNumber = phoneNumber,
-                                mbti = mbti,
-                                photoUri = profile?.photoUri ?: "",
-                                favorites = favorites,
-                                hobbies = hobbies,
-                                mood = mood,
-                                note = note
-                            )
-                            onSave(updatedProfile)
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("저장")
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("취소")
+                        }
+                        Button(
+                            onClick = {
+                                val updatedProfile = Profile(
+                                    id = profile?.id ?: 0,
+                                    name = name,
+                                    nickname = nickname,
+                                    relationshipStartDate = relationshipStartDate,
+                                    birthday = birthday,
+                                    phoneNumber = phoneNumber,
+                                    mbti = mbti,
+                                    photoUri = profile?.photoUri ?: "",
+                                    favorites = favorites,
+                                    hobbies = hobbies,
+                                    mood = mood,
+                                    note = note
+                                )
+                                onSave(updatedProfile)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("저장")
+                        }
                     }
                 }
             }
@@ -307,73 +319,234 @@ fun ProfileEditDialog(
     
     // 사귀기 시작한 날 DatePicker
     if (showRelationshipDatePicker) {
-        DatePickerModal(
-            title = "사귀기 시작한 날을 선택해주세요",
-            onDismiss = { showRelationshipDatePicker = false },
-            onDateSelected = { selectedDate ->
-                relationshipStartDate = selectedDate
-                showRelationshipDatePicker = false
+        val dateFormatter = remember {
+            DateTimeFormatter.ofPattern("yyyy년 M월 d일 EEEE", Locale.KOREAN)
+        }
+        val baseDate = relationshipStartDate.takeIf { it.isNotEmpty() }?.let {
+            try {
+                LocalDate.parse(it)
+            } catch (e: Exception) {
+                LocalDate.now()
             }
-        )
+        } ?: LocalDate.now()
+        var currentMonth by remember { mutableStateOf(YearMonth.from(baseDate)) }
+        var selectedDate by remember { mutableStateOf<LocalDate?>(baseDate) }
+        
+        Dialog(
+            onDismissRequest = { showRelationshipDatePicker = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showRelationshipDatePicker = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFF5F5DC),
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clickable(enabled = false) { }
+                ) {
+                    Column {
+                        // 상단 날짜 정보
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 20.dp)
+                        ) {
+                            Text(
+                                text = "사귀기 시작한 날",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                ),
+                                color = Color(0xFF8B4A6B)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            selectedDate?.let {
+                                Text(
+                                    text = it.format(dateFormatter),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontSize = 16.sp
+                                    ),
+                                    color = Color(0xFFE91E63),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        
+                        // 커스텀 캘린더
+                        CustomCalendar(
+                            currentMonth = currentMonth,
+                            selectedDate = selectedDate,
+                            startDate = null,
+                            endDate = null,
+                            onMonthChange = { currentMonth = it },
+                            onDateSelected = { date ->
+                                selectedDate = date
+                            }
+                        )
+                        
+                        // 하단 버튼
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showRelationshipDatePicker = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFE0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("취소", color = Color(0xFFE91E63), style = MaterialTheme.typography.bodyLarge)
+                            }
+                            Button(
+                                onClick = {
+                                    selectedDate?.let { date ->
+                                        relationshipStartDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                                        showRelationshipDatePicker = false
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE91E63)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("확인", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // 생일 DatePicker
     if (showBirthdayDatePicker) {
-        DatePickerModal(
-            title = "생일을 선택해주세요",
-            onDismiss = { showBirthdayDatePicker = false },
-            onDateSelected = { selectedDate ->
-                birthday = selectedDate
-                showBirthdayDatePicker = false
+        val dateFormatter = remember {
+            DateTimeFormatter.ofPattern("yyyy년 M월 d일 EEEE", Locale.KOREAN)
+        }
+        val baseDate = birthday.takeIf { it.isNotEmpty() }?.let {
+            try {
+                LocalDate.parse(it)
+            } catch (e: Exception) {
+                LocalDate.now()
             }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerModal(
-    title: String,
-    onDismiss: () -> Unit,
-    onDateSelected: (String) -> Unit
-) {
-    val datePickerState = rememberDatePickerState()
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val localDate = Instant.ofEpochMilli(millis)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        onDateSelected(localDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+        } ?: LocalDate.now()
+        var currentMonth by remember { mutableStateOf(YearMonth.from(baseDate)) }
+        var selectedDate by remember { mutableStateOf<LocalDate?>(baseDate) }
+        
+        Dialog(
+            onDismissRequest = { showBirthdayDatePicker = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showBirthdayDatePicker = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFF5F5DC),
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clickable(enabled = false) { }
+                ) {
+                    Column {
+                        // 상단 날짜 정보
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 20.dp)
+                        ) {
+                            Text(
+                                text = "생일",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                ),
+                                color = Color(0xFF8B4A6B)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            selectedDate?.let {
+                                Text(
+                                    text = it.format(dateFormatter),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontSize = 16.sp
+                                    ),
+                                    color = Color(0xFFE91E63),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        
+                        // 커스텀 캘린더 (생일 선택: 1970년 ~ 현재 년도)
+                        val currentYear = LocalDate.now().year
+                        CustomCalendar(
+                            currentMonth = currentMonth,
+                            selectedDate = selectedDate,
+                            startDate = null,
+                            endDate = null,
+                            onMonthChange = { currentMonth = it },
+                            onDateSelected = { date ->
+                                selectedDate = date
+                            },
+                            minYear = 1970,
+                            maxYear = currentYear
+                        )
+                        
+                        // 하단 버튼
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showBirthdayDatePicker = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFE0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("취소", color = Color(0xFFE91E63), style = MaterialTheme.typography.bodyLarge)
+                            }
+                            Button(
+                                onClick = {
+                                    selectedDate?.let { date ->
+                                        birthday = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                                        showBirthdayDatePicker = false
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE91E63)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("확인", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
                     }
                 }
-            ) {
-                Text("확인")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("취소")
-            }
-        }
-    ) {
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp)
-            )
-            DatePicker(
-                state = datePickerState,
-                title = null,
-                headline = null
-            )
         }
     }
 }
