@@ -21,7 +21,7 @@ fun CalendarScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFF9F0)),
+            .background(Color(0xFFF5F5DC)),
         contentAlignment = Alignment.Center
     ) {
         Column(

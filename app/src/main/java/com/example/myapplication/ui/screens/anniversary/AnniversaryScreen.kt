@@ -11,6 +11,7 @@ import java.time.ZoneId
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,11 +49,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -93,19 +97,29 @@ enum class FilterTab {
 }
 
 private val availableColors = listOf(
-    Color(0xFFF5E6F0) to "#F5E6F0", // 핑크
-    Color(0xFFF0E6F5) to "#F0E6F5", // 라벤더
-    Color(0xFFF5F0E6) to "#F5F0E6", // 베이지
-    Color(0xFFE6F5F0) to "#E6F5F0", // 민트
-    Color(0xFFE6F0F5) to "#E6F0F5", // 하늘색
-    Color(0xFFF5E6E6) to "#F5E6E6", // 연한 빨강
-    Color(0xFFF5F5E6) to "#F5F5E6", // 연한 노랑
-    Color(0xFFE6E6F5) to "#E6E6F5"  // 연한 보라
+    // 따뜻한 톤
+    Color(0xFFFFB3BA) to "#FFB3BA", // 로즈 (Rose)
+    Color(0xFFFFD9B3) to "#FFD9B3", // 피치 (Peach)
+    Color(0xFFD4A574) to "#D4A574", // 더스티 로즈 (Dusty Rose)
+    Color(0xFFFFE5D9) to "#FFE5D9", // 시 셸 (Seashell)
+    Color(0xFFFF99AA) to "#FF99AA", // 핑크 (Pink)
+    // 시원한 톤
+    Color(0xFFC4B5FD) to "#C4B5FD", // 라벤더 (Lavender)
+    Color(0xFF93C5FD) to "#93C5FD", // 스카이 블루 (Sky Blue)
+    Color(0xFF86EFAC) to "#86EFAC", // 세이지 그린 (Sage Green)
+    Color(0xFF6EE7B7) to "#6EE7B7", // 민트 그린 (Mint Green)
+    Color(0xFFA5B4FC) to "#A5B4FC"  // 페리윙클 (Periwinkle)
 )
+
+enum class AnniversaryTab {
+    ANNIVERSARY, CALENDAR
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AnniversaryScreen() {
+fun AnniversaryScreen(
+    navController: androidx.navigation.NavHostController? = null
+) {
     val context = LocalContext.current
     val database = remember { AppDatabase.getDatabase(context) }
     val eventDao = remember { database.eventDao() }
@@ -128,6 +142,7 @@ fun AnniversaryScreen() {
         (manualAnniversaries + autoAnniversaries).sortedBy { it.date }
     }
 
+    var selectedTab by remember { mutableStateOf(AnniversaryTab.ANNIVERSARY) }
     var selectedFilter by remember { mutableStateOf(FilterTab.ALL) }
     var showAddDialog by remember { mutableStateOf(false) }
     var editingEvent by remember { mutableStateOf<Event?>(null) }
@@ -146,25 +161,44 @@ fun AnniversaryScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFF5F5DC)
+                ),
                 title = {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextButton(
+                            onClick = { selectedTab = AnniversaryTab.ANNIVERSARY },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (selectedTab == AnniversaryTab.ANNIVERSARY) 
+                                    Color(0xFF8B4A6B) else Color(0xFF8B4A6B).copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Text(
                                 "기념일",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp,
-                                color = Color(0xFF8B4A6B)
+                                fontWeight = if (selectedTab == AnniversaryTab.ANNIVERSARY) 
+                                    FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 18.sp
                             )
-                            Text("🎉", fontSize = 20.sp)
                         }
-                        Text(
-                            text = "우리의 소중한 날들을 기록해요 ✨",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF8B4A6B).copy(alpha = 0.7f)
-                        )
+                        TextButton(
+                            onClick = { selectedTab = AnniversaryTab.CALENDAR },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (selectedTab == AnniversaryTab.CALENDAR) 
+                                    Color(0xFF8B4A6B) else Color(0xFF8B4A6B).copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                "캘린더",
+                                fontWeight = if (selectedTab == AnniversaryTab.CALENDAR) 
+                                    FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 18.sp
+                            )
+                        }
                     }
                 }
             )
@@ -182,46 +216,59 @@ fun AnniversaryScreen() {
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .background(Color(0xFFF5F5DC))
         ) {
-            CategoryTabs(
-                selectedFilter = selectedFilter,
-                onFilterSelected = { selectedFilter = it },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
+            when (selectedTab) {
+                AnniversaryTab.ANNIVERSARY -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                    CategoryTabs(
+                        selectedFilter = selectedFilter,
+                        onFilterSelected = { selectedFilter = it },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
 
-            if (filteredItems.isEmpty()) {
-                EmptyAnniversaryState()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(items = filteredItems, key = { it.key }) { item ->
-                        AnniversaryCard(
-                            item = item,
-                            today = today,
-                            onClick = {
-                                if (!item.isAuto && item.sourceEventId != null) {
-                                    val event = events.find { it.id == item.sourceEventId }
-                                    if (event != null) {
-                                        editingEvent = event
+                    if (filteredItems.isEmpty()) {
+                        EmptyAnniversaryState()
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(items = filteredItems, key = { it.key }) { item ->
+                                AnniversaryCard(
+                                    item = item,
+                                    today = today,
+                                    onClick = {
+                                        if (!item.isAuto && item.sourceEventId != null) {
+                                            val event = events.find { it.id == item.sourceEventId }
+                                            if (event != null) {
+                                                editingEvent = event
+                                            }
+                                        }
+                                    },
+                                    onDelete = { eventId ->
+                                        scope.launch {
+                                            eventDao.deleteEvent(Event(id = eventId))
+                                        }
                                     }
-                                }
-                            },
-                            onDelete = { eventId ->
-                                scope.launch {
-                                    eventDao.deleteEvent(Event(id = eventId))
-                                }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
+            AnniversaryTab.CALENDAR -> {
+                com.example.myapplication.ui.screens.calendar.CalendarScreen()
+            }
+        }
         }
     }
 
@@ -306,7 +353,7 @@ private fun CategoryTabs(
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Color(0xFFFF6B9D),
                     selectedLabelColor = Color.White,
-                    containerColor = Color.White,
+                    containerColor = Color(0xFFF5F5DC),
                     labelColor = Color(0xFF8B4A6B)
                 ),
                 modifier = Modifier.padding(vertical = 4.dp)
@@ -576,11 +623,34 @@ private fun AddAnniversaryDialog(
         ).show()
     }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEditMode) "기념일 수정" else "기념일 추가") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFFF5F5DC)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 제목
+                Text(
+                    text = if (isEditMode) "기념일 수정" else "기념일 추가",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color(0xFF5D4037),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = {
@@ -589,7 +659,8 @@ private fun AddAnniversaryDialog(
                     },
                     label = { Text("기념일 이름") },
                     singleLine = true,
-                    isError = showError && title.isBlank()
+                    isError = showError && title.isBlank(),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Column {
@@ -616,7 +687,7 @@ private fun AddAnniversaryDialog(
                                     )
                                     .border(
                                         width = if (isSelected) 0.dp else 1.dp,
-                                        color = Color(0xFFE0E0E0),
+                                        color = Color(0xFFF5F5DC),
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     .clickable { selectedIcon = icon },
@@ -635,11 +706,31 @@ private fun AddAnniversaryDialog(
 
                 // 시작 날짜/시간
                 Column {
-                    Text(
-                        text = "만나는날",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF5D4037)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "만나는날",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFF5D4037)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "시간설정",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF5D4037)
+                            )
+                            Switch(
+                                checked = !isAllDay,
+                                onCheckedChange = { isAllDay = !it }
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -723,7 +814,9 @@ private fun AddAnniversaryDialog(
                     )
                 }
 
-                Column {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(
                         text = "카테고리",
                         style = MaterialTheme.typography.labelMedium,
@@ -732,12 +825,14 @@ private fun AddAnniversaryDialog(
                     Spacer(modifier = Modifier.height(4.dp))
                     ExposedDropdownMenuBox(
                         expanded = categoryExpanded,
-                        onExpandedChange = { categoryExpanded = it }
+                        onExpandedChange = { categoryExpanded = it },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
                             value = selectedCategory.displayName,
                             onValueChange = {},
                             readOnly = true,
+                            singleLine = true,
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded)
                             },
@@ -751,7 +846,10 @@ private fun AddAnniversaryDialog(
                         )
                         DropdownMenu(
                             expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false }
+                            onDismissRequest = { categoryExpanded = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
                         ) {
                             EventCategory.values().forEach { category ->
                                 DropdownMenuItem(
@@ -775,7 +873,9 @@ private fun AddAnniversaryDialog(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                     ) {
                         availableColors.forEach { (color, hex) ->
                             val isSelected = selectedColor == hex
@@ -805,50 +905,59 @@ private fun AddAnniversaryDialog(
                     value = memo,
                     onValueChange = { memo = it },
                     label = { Text("메모 (선택)") },
-                    minLines = 2
+                    minLines = 4,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (title.isBlank() || startDate == null) {
-                        showError = true
-                        return@Button
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 버튼
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFF5D4037)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("취소")
                     }
-                    onSave(
-                        title.trim(),
-                        startDate!!,
-                        endDate,
-                        if (!isAllDay) startTime else null,
-                        if (!isAllDay) endTime else null,
-                        isAllDay,
-                        memo.trim(),
-                        selectedCategory,
-                        selectedIcon,
-                        selectedColor
-                    )
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFE91E63)
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("저장", color = Color.White)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFF5D4037)
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("취소")
+                    Button(
+                        onClick = {
+                            if (title.isBlank() || startDate == null) {
+                                showError = true
+                                return@Button
+                            }
+                            onSave(
+                                title.trim(),
+                                startDate!!,
+                                endDate,
+                                if (!isAllDay) startTime else null,
+                                if (!isAllDay) endTime else null,
+                                isAllDay,
+                                memo.trim(),
+                                selectedCategory,
+                                selectedIcon,
+                                selectedColor
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFE91E63)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("저장", color = Color.White)
+                    }
+                }
             }
         }
-    )
+    }
     
     // 시작 날짜 선택 다이얼로그
     if (showStartDatePicker) {
@@ -872,7 +981,7 @@ private fun AddAnniversaryDialog(
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
+                    color = Color(0xFFF5F5DC),
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
                         .clickable(enabled = false) { }
@@ -952,7 +1061,7 @@ private fun AddAnniversaryDialog(
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 14.sp
                                     ),
-                                    color = Color(0xFF9E9E9E)
+                                    color = Color(0xFFF5F5DC)
                                 )
                             }
                         }
@@ -1033,7 +1142,7 @@ private fun AddAnniversaryDialog(
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
+                    color = Color(0xFFF5F5DC),
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
                         .clickable(enabled = false) { }
@@ -1112,7 +1221,7 @@ private fun AddAnniversaryDialog(
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 14.sp
                                     ),
-                                    color = Color(0xFF9E9E9E)
+                                    color = Color(0xFFF5F5DC)
                                 )
                             }
                         }

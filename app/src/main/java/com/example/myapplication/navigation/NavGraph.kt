@@ -49,7 +49,7 @@ fun NavGraph(
             CalendarScreen()
         }
         composable(Screen.Anniversary.route) {
-            AnniversaryScreen()
+            AnniversaryScreen(navController = navController)
         }
         composable(
             route = Screen.CategoryDetail.route,

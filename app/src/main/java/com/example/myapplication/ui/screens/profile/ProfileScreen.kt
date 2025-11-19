@@ -1,5 +1,8 @@
 package com.example.myapplication.ui.screens.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -19,11 +22,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.example.myapplication.R
 import com.example.myapplication.data.AppDatabase
 import com.example.myapplication.data.Profile
 import com.example.myapplication.data.ProfileDao
@@ -41,6 +46,53 @@ fun ProfileScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var showEditDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    
+    // 이미지 선택을 위한 Launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { selectedUri ->
+            scope.launch {
+                try {
+                    val photoUri = selectedUri.toString()
+                    val updatedProfile = if (profile != null) {
+                        profile!!.copy(photoUri = photoUri)
+                    } else {
+                        Profile(
+                            id = 0,
+                            name = "",
+                            nickname = "",
+                            relationshipStartDate = "",
+                            birthday = "",
+                            phoneNumber = "",
+                            mbti = "",
+                            photoUri = photoUri,
+                            favorites = "",
+                            hobbies = "",
+                            mood = "",
+                            note = ""
+                        )
+                    }
+                    
+                    if (profile == null) {
+                        val newId = profileDao.insertProfile(updatedProfile)
+                        profile = updatedProfile.copy(id = newId)
+                    } else {
+                        profileDao.updateProfile(updatedProfile.copy(id = profile!!.id))
+                        profile = updatedProfile.copy(id = profile!!.id)
+                    }
+                    
+                    // 저장 후 데이터베이스에서 다시 불러오기
+                    profileDao.getProfile().first()?.let {
+                        profile = it
+                    }
+                } catch (e: Exception) {
+                    // 에러 처리 (나중에 Snackbar로 표시할 수 있음)
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
     
     // 프로필 데이터 불러오기
     LaunchedEffect(Unit) {
@@ -78,7 +130,7 @@ fun ProfileScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFFF5F5DC))
             .verticalScroll(rememberScrollState())
             .padding(bottom = 24.dp)
     ) {
@@ -94,6 +146,7 @@ fun ProfileScreen() {
             ProfileHeader(
                 profile = profile,
                 onEditClick = { showEditDialog = true },
+                onPhotoClick = { imagePickerLauncher.launch("image/*") },
                 modifier = Modifier.fillMaxWidth()
             )
             
@@ -142,6 +195,7 @@ fun ProfileScreen() {
 fun ProfileHeader(
     profile: Profile?,
     onEditClick: () -> Unit,
+    onPhotoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -162,7 +216,7 @@ fun ProfileHeader(
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                .clickable(onClick = onEditClick),
+                .clickable(onClick = onPhotoClick),
             contentAlignment = Alignment.Center
         ) {
             if (profile?.photoUri?.isNotEmpty() == true) {
@@ -177,11 +231,11 @@ fun ProfileHeader(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = "프로필 사진 추가",
-                    modifier = Modifier.size(60.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Image(
+                    painter = painterResource(id = R.drawable.default_profile),
+                    contentDescription = "기본 프로필 사진",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             }
             
@@ -230,7 +284,7 @@ fun ProfileInfoSection(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color(0xFFF5F5DC))
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {

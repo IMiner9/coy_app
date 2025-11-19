@@ -9,6 +9,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.data.PreferencesManager
@@ -76,6 +77,9 @@ class MainActivity : ComponentActivity() {
                         // 카테고리 상세 화면일 때는 TopAppBar 숨기기 (자체 TopAppBar 사용)
                         if (currentRoute?.startsWith("category/") != true) {
                             TopAppBar(
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color(0xFFF5F5DC)
+                                ),
                                 title = { 
                                     Text(
                                         when (currentRoute) {

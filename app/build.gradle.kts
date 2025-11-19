@@ -70,6 +70,9 @@ dependencies {
     // Coil (이미지 로딩)
     implementation(libs.coil.compose)
     
+    // UCrop (이미지 크롭)
+    implementation("com.github.yalantis:ucrop:2.2.8")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

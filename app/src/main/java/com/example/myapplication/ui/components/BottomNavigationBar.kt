@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.myapplication.navigation.Screen
 
@@ -33,11 +34,6 @@ fun BottomNavigationBar(
             route = Screen.Memories.route,
             title = "추억",
             icon = Icons.Default.Photo
-        ),
-        BottomNavItem(
-            route = Screen.Calendar.route,
-            title = "캘린더",
-            icon = Icons.Default.CalendarToday
         ),
         BottomNavItem(
             route = Screen.Anniversary.route,

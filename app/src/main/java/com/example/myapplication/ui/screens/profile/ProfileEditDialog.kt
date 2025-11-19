@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -50,6 +51,7 @@ fun ProfileEditDialog(
                 .fillMaxSize()
                 .padding(16.dp),
             shape = MaterialTheme.shapes.large,
+            color = Color(0xFFF5F5DC),
             tonalElevation = 6.dp
         ) {
             Column(
@@ -91,7 +93,11 @@ fun ProfileEditDialog(
                         label = { Text("이름") },
                         placeholder = { Text("이름을 입력하세요") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     // 별명
@@ -101,7 +107,11 @@ fun ProfileEditDialog(
                         label = { Text("별명") },
                         placeholder = { Text("별명을 입력하세요") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     // 사귀기 시작한 날
@@ -122,6 +132,9 @@ fun ProfileEditDialog(
                         singleLine = true,
                         enabled = false,
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC),
+                            disabledContainerColor = Color(0xFFF5F5DC),
                             disabledTextColor = MaterialTheme.colorScheme.onSurface,
                             disabledBorderColor = MaterialTheme.colorScheme.outline,
                             disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -149,6 +162,9 @@ fun ProfileEditDialog(
                         singleLine = true,
                         enabled = false,
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC),
+                            disabledContainerColor = Color(0xFFF5F5DC),
                             disabledTextColor = MaterialTheme.colorScheme.onSurface,
                             disabledBorderColor = MaterialTheme.colorScheme.outline,
                             disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -165,7 +181,11 @@ fun ProfileEditDialog(
                         label = { Text("연락처 ☎️") },
                         placeholder = { Text("010-1234-5678") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     // MBTI
@@ -175,7 +195,11 @@ fun ProfileEditDialog(
                         label = { Text("MBTI") },
                         placeholder = { Text("예: INFP") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
@@ -188,7 +212,11 @@ fun ProfileEditDialog(
                         placeholder = { Text("커피향, 강아지, 저녁 산책을 좋아해요 🐶🌆") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
-                        maxLines = 4
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     // 취미
@@ -198,7 +226,11 @@ fun ProfileEditDialog(
                         label = { Text("취미 ⬆️") },
                         placeholder = { Text("🎵☕🌸") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     // 현재 기분
@@ -208,7 +240,11 @@ fun ProfileEditDialog(
                         label = { Text("현재 기분 👁️") },
                         placeholder = { Text("😊") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
 
                     // 연인에게 한 줄 메모
@@ -219,7 +255,11 @@ fun ProfileEditDialog(
                         placeholder = { Text("메모를 입력해주세요") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
-                        maxLines = 4
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5DC),
+                            unfocusedContainerColor = Color(0xFFF5F5DC)
+                        )
                     )
                 }
 
