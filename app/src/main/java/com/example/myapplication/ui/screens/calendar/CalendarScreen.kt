@@ -276,7 +276,7 @@ fun CalendarScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
-                    contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "이 날에는 등록된 기념일이 없습니다.",
@@ -409,7 +409,7 @@ private fun CalendarView(
                         onMonthChange(currentMonth.minusMonths(1))
                     },
                     modifier = Modifier.size(40.dp)
-                ) {
+        ) {
                     Icon(
                         imageVector = Icons.Default.ChevronLeft,
                         contentDescription = "이전 달",
@@ -417,10 +417,10 @@ private fun CalendarView(
                     )
                 }
                 
-                Text(
+            Text(
                     text = currentMonth.format(monthYearFormatter),
                     style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     ),
                     color = Color(0xFF8B4A6B),
@@ -550,9 +550,9 @@ private fun CalendarView(
                                             style = MaterialTheme.typography.bodyMedium.copy(
                                                 fontSize = 14.sp,
                                                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal
-                                            ),
-                                            color = Color(0xFF5D4037)
-                                        )
+                ),
+                color = Color(0xFF5D4037)
+            )
                                     }
                                     
                                     // 기념일이 있는 날짜 배경 색칠 (형광펜 느낌, 카드 색상과 동일, 이어지는 느낌)
@@ -693,7 +693,7 @@ private fun CalendarEventCard(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
-                Text(
+            Text(
                     text = item.date.format(dateFormatter),
                     fontSize = 12.sp,
                     color = Color(0xFF8B4A6B).copy(alpha = 0.6f)
@@ -812,11 +812,11 @@ private fun generateAutoAnniversaries(
                     key = "auto-birthday-$yearCursor",
                     category = EventCategory.BIRTHDAY,
                     icon = "cake"
-                )
-            }
-            yearCursor++
+            )
         }
+            yearCursor++
     }
+}
 
     return results
 }

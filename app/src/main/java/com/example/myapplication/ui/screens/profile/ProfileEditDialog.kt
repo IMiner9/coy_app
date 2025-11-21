@@ -273,43 +273,43 @@ fun ProfileEditDialog(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // 저장/취소 버튼
-                    Divider()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                Divider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .padding(vertical = 16.dp)
                             .padding(bottom = 32.dp)
                             .navigationBarsPadding()
                             .imePadding(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("취소")
-                        }
-                        Button(
-                            onClick = {
-                                val updatedProfile = Profile(
-                                    id = profile?.id ?: 0,
-                                    name = name,
-                                    nickname = nickname,
-                                    relationshipStartDate = relationshipStartDate,
-                                    birthday = birthday,
-                                    phoneNumber = phoneNumber,
-                                    mbti = mbti,
-                                    photoUri = profile?.photoUri ?: "",
-                                    favorites = favorites,
-                                    hobbies = hobbies,
-                                    mood = mood,
-                                    note = note
-                                )
-                                onSave(updatedProfile)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("저장")
+                        Text("취소")
+                    }
+                    Button(
+                        onClick = {
+                            val updatedProfile = Profile(
+                                id = profile?.id ?: 0,
+                                name = name,
+                                nickname = nickname,
+                                relationshipStartDate = relationshipStartDate,
+                                birthday = birthday,
+                                phoneNumber = phoneNumber,
+                                mbti = mbti,
+                                photoUri = profile?.photoUri ?: "",
+                                favorites = favorites,
+                                hobbies = hobbies,
+                                mood = mood,
+                                note = note
+                            )
+                            onSave(updatedProfile)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("저장")
                         }
                     }
                 }
@@ -414,8 +414,8 @@ fun ProfileEditDialog(
                                 onClick = {
                                     selectedDate?.let { date ->
                                         relationshipStartDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                                        showRelationshipDatePicker = false
-                                    }
+                showRelationshipDatePicker = false
+            }
                                 },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFFE91E63)
@@ -529,12 +529,12 @@ fun ProfileEditDialog(
                                 Text("취소", color = Color(0xFFE91E63), style = MaterialTheme.typography.bodyLarge)
                             }
                             Button(
-                                onClick = {
+                onClick = {
                                     selectedDate?.let { date ->
                                         birthday = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
                                         showBirthdayDatePicker = false
-                                    }
-                                },
+            }
+        },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFFE91E63)
                                 ),

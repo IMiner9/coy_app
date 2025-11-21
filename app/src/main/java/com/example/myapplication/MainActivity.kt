@@ -86,16 +86,16 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier.fillMaxWidth(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            when (currentRoute) {
-                                                Screen.Profile.route -> "애인의 프로필"
-                                                Screen.Favorites.route -> "좋아하는 것들"
-                                                Screen.Memories.route -> "함께한 추억"
-                                                Screen.Calendar.route -> "일정 캘린더"
-                                                Screen.Anniversary.route -> "기념일"
-                                                else -> "연인 프로필 앱"
-                                            }
-                                        )
+                                    Text(
+                                        when (currentRoute) {
+                                            Screen.Profile.route -> "애인의 프로필"
+                                            Screen.Favorites.route -> "좋아하는 것들"
+                                            Screen.Memories.route -> "함께한 추억"
+                                            Screen.Calendar.route -> "일정 캘린더"
+                                            Screen.Anniversary.route -> "기념일"
+                                            else -> "연인 프로필 앱"
+                                        }
+                                    )
                                     }
                                 },
                                 actions = {
