@@ -4,6 +4,7 @@ import android.app.DatePickerDialog
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,18 +21,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.example.myapplication.R
 import com.example.myapplication.data.AppDatabase
 import com.example.myapplication.data.Memory
 import com.yalantis.ucrop.UCrop
@@ -449,14 +458,101 @@ fun MemoryDetailDialog(
                     
                     Divider(color = Color(0xFF8B4A6B).copy(alpha = 0.2f))
                     
-                    // 내용
+                    // 내용 (수정 부분과 동일한 UI 코드 재사용)
                     if (memory.description.isNotEmpty()) {
-            Text(
-                            text = memory.description,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color(0xFF5D4037),
-                            lineHeight = 24.sp
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                        ) {
+                            // 배경 이미지
+                            Image(
+                                painter = painterResource(id = R.drawable.memory_write_background),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.FillBounds
+                            )
+                            
+                            // 텍스트 입력 필드 (읽기 전용)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 60.dp)
+                            ) {
+                                // 가이드 라인 간격을 변수로 계산
+                                var textFieldHeightPx by remember { mutableStateOf(0f) }
+                                val density = LocalDensity.current
+                                
+                                // 가이드 라인 간격에 맞춘 lineHeight와 fontSize 계산
+                                val calculatedLineHeight = if (textFieldHeightPx > 0f && textFieldHeightPx < 10000f) {
+                                    val guideLineSpacingPx = textFieldHeightPx / 3.6f  // 가이드 라인 간격과 동일하게
+                                    // 픽셀을 dp로 변환 후 sp로 변환
+                                    val spacingDp = (guideLineSpacingPx / density.density).dp
+                                    val calculatedSp = spacingDp.value.sp
+                                    // 값 제한
+                                    when {
+                                        calculatedSp.value < 20 -> 20.sp
+                                        calculatedSp.value > 40 -> 40.sp
+                                        else -> calculatedSp
+                                    }
+                                } else {
+                                    28.sp // 기본값
+                                }
+                                val calculatedFontSize = when {
+                                    (calculatedLineHeight * 0.65f).value < 14 -> 14.sp
+                                    (calculatedLineHeight * 0.65f).value > 30 -> 30.sp
+                                    else -> calculatedLineHeight * 0.65f
+                                }
+                                
+                                OutlinedTextField(
+                                    value = memory.description,
+                                    onValueChange = { },
+                                    readOnly = true,
+                                    label = null,
+                                    placeholder = null,
+                                    minLines = 3,
+                                    maxLines = 3,
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = calculatedFontSize,
+                                        lineHeight = calculatedLineHeight
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset(y = (-24).dp, x = (-4).dp)
+                                        .onSizeChanged { size ->
+                                            textFieldHeightPx = size.height.toFloat()
+                                        }
+                                        .drawBehind {
+                                            // 3줄 가이드 라인 그리기 (간격을 더 좁힘)
+                                            val lineSpacing = size.height / 3.6f  // 3.6으로 나눠서 간격 더 좁힘
+                                            val lineColor = Color(0xFF8B4A6B).copy(alpha = 0.6f)
+                                            
+                                            // 첫 번째 라인 위치 조정 (한 줄 간격만큼 아래로)
+                                            val firstLineOffset = size.height * 0.05f + lineSpacing
+                                            
+                                            for (i in 1..3) {
+                                                val y = firstLineOffset + (lineSpacing * (i - 1))
+                                                drawLine(
+                                                    color = lineColor,
+                                                    start = Offset(0f, y),
+                                                    end = Offset(size.width, y),
+                                                    strokeWidth = 2.dp.toPx()
+                                                )
+                                            }
+                                        },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color(0xFF5D4037),
+                                        unfocusedTextColor = Color(0xFF5D4037),
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        disabledContainerColor = Color.Transparent,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+                                        disabledBorderColor = Color.Transparent
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -727,17 +823,107 @@ fun MemoryEditDialog(
                     }
                     
                     // 내용 입력
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("내용") },
-                        minLines = 8,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF5D4037),
-                            unfocusedTextColor = Color(0xFF5D4037)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        // 배경 이미지
+                        Image(
+                            painter = painterResource(id = R.drawable.memory_write_background),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.FillBounds
                         )
-                    )
+                        
+                        // 텍스트 입력 필드
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 60.dp)
+                        ) {
+                            // 가이드 라인 간격을 변수로 계산
+                            var textFieldHeightPx by remember { mutableStateOf(0f) }
+                            val density = LocalDensity.current
+                            
+                            // 가이드 라인 간격에 맞춘 lineHeight와 fontSize 계산
+                            val calculatedLineHeight = if (textFieldHeightPx > 0f && textFieldHeightPx < 10000f) {
+                                val guideLineSpacingPx = textFieldHeightPx / 3.6f  // 가이드 라인 간격과 동일하게
+                                // 픽셀을 dp로 변환 후 sp로 변환
+                                val spacingDp = (guideLineSpacingPx / density.density).dp
+                                val calculatedSp = spacingDp.value.sp
+                                // 값 제한
+                                when {
+                                    calculatedSp.value < 20 -> 20.sp
+                                    calculatedSp.value > 40 -> 40.sp
+                                    else -> calculatedSp
+                                }
+                            } else {
+                                28.sp // 기본값
+                            }
+                            val calculatedFontSize = when {
+                                (calculatedLineHeight * 0.65f).value < 14 -> 14.sp
+                                (calculatedLineHeight * 0.65f).value > 30 -> 30.sp
+                                else -> calculatedLineHeight * 0.65f
+                            }
+                            
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { newValue ->
+                                    // 3줄 제한: 줄바꿈 개수 확인
+                                    val lines = newValue.split("\n")
+                                    if (lines.size <= 3) {
+                                        description = newValue
+                                    } else {
+                                        // 3줄까지만 허용
+                                        description = lines.take(3).joinToString("\n")
+                                    }
+                                },
+                                label = null,
+                                placeholder = null,
+                                minLines = 3,
+                                maxLines = 3,
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = calculatedFontSize,
+                                    lineHeight = calculatedLineHeight
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .offset(y = (-24).dp, x = (-4).dp)
+                                    .onSizeChanged { size ->
+                                        textFieldHeightPx = size.height.toFloat()
+                                    }
+                                    .drawBehind {
+                                        // 3줄 가이드 라인 그리기 (간격을 더 좁힘)
+                                        val lineSpacing = size.height / 3.6f  // 3.6으로 나눠서 간격 더 좁힘
+                                        val lineColor = Color(0xFF8B4A6B).copy(alpha = 0.6f)
+                                        
+                                        // 첫 번째 라인 위치 조정 (한 줄 간격만큼 아래로)
+                                        val firstLineOffset = size.height * 0.05f + lineSpacing
+                                        
+                                        for (i in 1..3) {
+                                            val y = firstLineOffset + (lineSpacing * (i - 1))
+                                            drawLine(
+                                                color = lineColor,
+                                                start = Offset(0f, y),
+                                                end = Offset(size.width, y),
+                                                strokeWidth = 2.dp.toPx()
+                                            )
+                                        }
+                                    },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF5D4037),
+                                    unfocusedTextColor = Color(0xFF5D4037),
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    disabledBorderColor = Color.Transparent
+                                )
+                            )
+                        }
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
