@@ -477,33 +477,8 @@ fun MemoryDetailDialog(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 60.dp)
+                                    .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 200.dp)
                             ) {
-                                // 가이드 라인 간격을 변수로 계산
-                                var textFieldHeightPx by remember { mutableStateOf(0f) }
-                                val density = LocalDensity.current
-                                
-                                // 가이드 라인 간격에 맞춘 lineHeight와 fontSize 계산
-                                val calculatedLineHeight = if (textFieldHeightPx > 0f && textFieldHeightPx < 10000f) {
-                                    val guideLineSpacingPx = textFieldHeightPx / 3.6f  // 가이드 라인 간격과 동일하게
-                                    // 픽셀을 dp로 변환 후 sp로 변환
-                                    val spacingDp = (guideLineSpacingPx / density.density).dp
-                                    val calculatedSp = spacingDp.value.sp
-                                    // 값 제한
-                                    when {
-                                        calculatedSp.value < 20 -> 20.sp
-                                        calculatedSp.value > 40 -> 40.sp
-                                        else -> calculatedSp
-                                    }
-                                } else {
-                                    28.sp // 기본값
-                                }
-                                val calculatedFontSize = when {
-                                    (calculatedLineHeight * 0.65f).value < 14 -> 14.sp
-                                    (calculatedLineHeight * 0.65f).value > 30 -> 30.sp
-                                    else -> calculatedLineHeight * 0.65f
-                                }
-                                
                                 OutlinedTextField(
                                     value = memory.description,
                                     onValueChange = { },
@@ -512,34 +487,10 @@ fun MemoryDetailDialog(
                                     placeholder = null,
                                     minLines = 3,
                                     maxLines = 3,
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = calculatedFontSize,
-                                        lineHeight = calculatedLineHeight
-                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .offset(y = (-24).dp, x = (-4).dp)
-                                        .onSizeChanged { size ->
-                                            textFieldHeightPx = size.height.toFloat()
-                                        }
-                                        .drawBehind {
-                                            // 3줄 가이드 라인 그리기 (간격을 더 좁힘)
-                                            val lineSpacing = size.height / 3.6f  // 3.6으로 나눠서 간격 더 좁힘
-                                            val lineColor = Color(0xFF8B4A6B).copy(alpha = 0.6f)
-                                            
-                                            // 첫 번째 라인 위치 조정 (한 줄 간격만큼 아래로)
-                                            val firstLineOffset = size.height * 0.05f + lineSpacing
-                                            
-                                            for (i in 1..3) {
-                                                val y = firstLineOffset + (lineSpacing * (i - 1))
-                                                drawLine(
-                                                    color = lineColor,
-                                                    start = Offset(0f, y),
-                                                    end = Offset(size.width, y),
-                                                    strokeWidth = 2.dp.toPx()
-                                                )
-                                            }
-                                        },
+                                        .height(250.dp)
+                                        .padding(bottom = 30.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedTextColor = Color(0xFF5D4037),
                                         unfocusedTextColor = Color(0xFF5D4037),
@@ -840,33 +791,8 @@ fun MemoryEditDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 60.dp)
+                                .padding(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 180.dp)
                         ) {
-                            // 가이드 라인 간격을 변수로 계산
-                            var textFieldHeightPx by remember { mutableStateOf(0f) }
-                            val density = LocalDensity.current
-                            
-                            // 가이드 라인 간격에 맞춘 lineHeight와 fontSize 계산
-                            val calculatedLineHeight = if (textFieldHeightPx > 0f && textFieldHeightPx < 10000f) {
-                                val guideLineSpacingPx = textFieldHeightPx / 3.6f  // 가이드 라인 간격과 동일하게
-                                // 픽셀을 dp로 변환 후 sp로 변환
-                                val spacingDp = (guideLineSpacingPx / density.density).dp
-                                val calculatedSp = spacingDp.value.sp
-                                // 값 제한
-                                when {
-                                    calculatedSp.value < 20 -> 20.sp
-                                    calculatedSp.value > 40 -> 40.sp
-                                    else -> calculatedSp
-                                }
-                            } else {
-                                28.sp // 기본값
-                            }
-                            val calculatedFontSize = when {
-                                (calculatedLineHeight * 0.65f).value < 14 -> 14.sp
-                                (calculatedLineHeight * 0.65f).value > 30 -> 30.sp
-                                else -> calculatedLineHeight * 0.65f
-                            }
-                            
                             OutlinedTextField(
                                 value = description,
                                 onValueChange = { newValue ->
@@ -883,34 +809,10 @@ fun MemoryEditDialog(
                                 placeholder = null,
                                 minLines = 3,
                                 maxLines = 3,
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = calculatedFontSize,
-                                    lineHeight = calculatedLineHeight
-                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .offset(y = (-24).dp, x = (-4).dp)
-                                    .onSizeChanged { size ->
-                                        textFieldHeightPx = size.height.toFloat()
-                                    }
-                                    .drawBehind {
-                                        // 3줄 가이드 라인 그리기 (간격을 더 좁힘)
-                                        val lineSpacing = size.height / 3.6f  // 3.6으로 나눠서 간격 더 좁힘
-                                        val lineColor = Color(0xFF8B4A6B).copy(alpha = 0.6f)
-                                        
-                                        // 첫 번째 라인 위치 조정 (한 줄 간격만큼 아래로)
-                                        val firstLineOffset = size.height * 0.05f + lineSpacing
-                                        
-                                        for (i in 1..3) {
-                                            val y = firstLineOffset + (lineSpacing * (i - 1))
-                                            drawLine(
-                                                color = lineColor,
-                                                start = Offset(0f, y),
-                                                end = Offset(size.width, y),
-                                                strokeWidth = 2.dp.toPx()
-                                            )
-                                        }
-                                    },
+                                    .height(250.dp)
+                                    .padding(bottom = 30.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = Color(0xFF5D4037),
                                     unfocusedTextColor = Color(0xFF5D4037),
